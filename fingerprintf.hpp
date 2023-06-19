@@ -1177,7 +1177,7 @@ class FINGERPRINTF
 			 return true;
 		 }
 
-		 HRESULT InstallDatabase(SIZE_T selectedUnit)
+		 HRESULT InstallDatabase(SIZE_T selectedUnit,HKEY k = HKEY_LOCAL_MACHINE)
 			{
 			WINBIO_UUID databaseId = PRIVATE_POOL_DATABASE_ID;
 			WINBIO_UUID dataFormat = {};
@@ -1190,7 +1190,7 @@ class FINGERPRINTF
 			POOL_CONFIGURATION derivedConfig = {};
 			hr = CreateCompatibleConfiguration(
 				&units[selectedUnit],
-				&derivedConfig
+				&derivedConfig,k
 			);
 			if (SUCCEEDED(hr))
 				{
@@ -1204,7 +1204,7 @@ class FINGERPRINTF
 			}
 
 
-		 HRESULT UninstallDatabase(int Unit)
+		 HRESULT UninstallDatabase(int Unit, HKEY k = HKEY_LOCAL_MACHINE)
 			 {
 			 WINBIO_UUID databaseId = PRIVATE_POOL_DATABASE_ID;
 			 WINBIO_UUID dataFormat = {};
@@ -1222,6 +1222,7 @@ class FINGERPRINTF
 						 &units[i],
 						 &databaseId,
 						 &configRemoved
+						 ,k
 					 );
 					 if (FAILED(hr))
 						 {
@@ -1235,14 +1236,14 @@ class FINGERPRINTF
 			 if (SUCCEEDED(hr))
 				 {
 				 // Remove the database.
-				 hr = UnregisterDatabase(&databaseId);
+				 hr = UnregisterDatabase(&databaseId,k);
 				 }
 			 return hr;
 			 }
 
 		 //-----------------------------------------------------------------------------
 
-		 HRESULT Add(SIZE_T selectedUnit)
+		 HRESULT Add(SIZE_T selectedUnit, HKEY k = HKEY_LOCAL_MACHINE)
 			 {
 			 WINBIO_UUID databaseId = PRIVATE_POOL_DATABASE_ID;
 			 WINBIO_UUID dataFormat = {};
@@ -1262,7 +1263,7 @@ class FINGERPRINTF
 				derivedConfig.DatabaseId = PRIVATE_POOL_DATABASE_ID;
 				hr = RegisterPrivateConfiguration(
 					&units[selectedUnit],
-					&derivedConfig
+					&derivedConfig,k
 				);
 				}
 			 return hr;
@@ -1389,7 +1390,7 @@ class FINGERPRINTF
 			PRIVATE_POOL_DATABASE_ID = db;
 			}
 
-		HRESULT Register(size_t idx)
+		HRESULT Register(size_t idx,HKEY k = HKEY_LOCAL_MACHINE)
 			{
 			// Connect to the system pool. 
 			if (units.empty())
@@ -1398,11 +1399,11 @@ class FINGERPRINTF
 				return E_INVALIDARG;
 
 			// Database
-			hr = InstallDatabase(idx);
+			hr = InstallDatabase(idx,k);
 			if (FAILED(hr))
 				return hr;
 
-			hr = Add(idx);
+			hr = Add(idx,k);
 
 			if (FAILED(hr))
 				return hr;
@@ -1431,8 +1432,8 @@ class FINGERPRINTF
 				else
 					hr = WinBioAsyncOpenSession(TheType, WINBIO_POOL_SYSTEM, WINBIO_FLAG_DEFAULT, 0, 0, WINBIO_DB_DEFAULT, WINBIO_ASYNC_NOTIFY_MESSAGE,hh,mm,0,0,FALSE, &sessionHandle);
 
-				if (TheType == WINBIO_TYPE_FACIAL_FEATURES && units.size())
-					hr = WinBioMonitorPresence(sessionHandle, units[0].UnitId);
+				if (TheType == WINBIO_TYPE_FACIAL_FEATURES)
+					hr = WinBioMonitorPresence(sessionHandle, units[Unit].UnitId);
 			}
 			else
 			{
@@ -1513,7 +1514,6 @@ class FINGERPRINTF
 				return std::make_tuple<>(E_INVALIDARG,rejectDetail,subFactor,identity);
 			auto u = units[idx];
 
-			
 			hr = WinBioIdentify(sessionHandle, &u.UnitId, &identity, &subFactor, &rejectDetail);
 			return std::make_tuple<>(hr, rejectDetail, subFactor, identity);
 			}

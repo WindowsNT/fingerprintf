@@ -22,6 +22,7 @@ HINSTANCE hAppInstance = 0;
 
 #include <WinBio.h>
 #pragma comment(lib,"winbio.lib")
+#pragma comment(lib,"crypt32.lib")
 
 
 
@@ -193,7 +194,9 @@ std::wstring displayIdentity(
 
 		case WINBIO_ID_TYPE_SID:
 		{
-			swprintf_s(aa, 1000, L"SID value: %S\n", Identity->Value.AccountSid.Data);
+			swprintf_s(aa, 1000, L"SID value: \n");
+			DWORD ch = 900;
+			CryptBinaryToString(Identity->Value.AccountSid.Data, Identity->Value.AccountSid.Size, CRYPT_STRING_BASE64, aa + wcslen(aa), &ch);
 			a += aa;
 			break;
 		}
@@ -237,9 +240,54 @@ LRESULT CALLBACK Main_DP(HWND hh, UINT mm, WPARAM ww, LPARAM ll)
 			WINBIO_E_INCORRECT_SESSION_TYPE;
 			WINBIO_ASYNC_RESULT* ar = (WINBIO_ASYNC_RESULT*)ll;
 			if (FAILED(ar->ApiStatus))
-				swprintf_s(fx, 1000, L"Fail 0x%X - Operation %i", ar->ApiStatus, ar->Operation);
+			{
+				if (ar->Operation == WINBIO_OPERATION_IDENTIFY)
+				{
+					swprintf_s(fx, 1000, L"Fail 0x%X - Identity", ar->ApiStatus);
+					auto str = ConvertRejectDetailToString(ar->Parameters.Identify.RejectDetail);
+					AddMessage(str);
+				}
+				else
+				if (ar->Operation == WINBIO_OPERATION_VERIFY)
+				{
+					swprintf_s(fx, 1000, L"Fail 0x%X - Verify", ar->ApiStatus);
+				}
+				else
+				if (ar->Operation == WINBIO_OPERATION_LOCATE_SENSOR)
+				{
+					swprintf_s(fx, 1000, L"Fail 0x%X - Locate", ar->ApiStatus);
+				}
+				else
+					swprintf_s(fx, 1000, L"Fail 0x%X - Operation %i", ar->ApiStatus,ar->Operation);
+			}
 			else
-				swprintf_s(fx, 1000, L"OK - Operation %i",ar->Operation);
+			{
+				if (ar->Operation == WINBIO_OPERATION_IDENTIFY)
+				{
+					swprintf_s(fx, 1000, L"OK - Identity");
+					LastID = ar->Parameters.Identify.Identity;
+					LastSub = ar->Parameters.Identify.SubFactor;
+					AddMessage(displayIdentity(&ar->Parameters.Identify.Identity, ar->Parameters.Identify.SubFactor).c_str());
+				}
+				else
+				if (ar->Operation == WINBIO_OPERATION_VERIFY)
+				{
+					swprintf_s(fx, 1000, L"OK - Verify");
+				}
+				else
+				if (ar->Operation == WINBIO_OPERATION_MONITOR_PRESENCE)
+				{
+					auto& pr = ar->Parameters.MonitorPresence;
+					swprintf_s(fx, 1000, L"OK - Monitor Present ChT: %u", pr.ChangeType);
+					if (pr.ChangeType == WINBIO_PRESENCE_CHANGE_TYPE_RECOGNIZE && pr.PresenceArray)
+					{
+						auto& pa = *ar->Parameters.MonitorPresence.PresenceArray;
+						AddMessage(displayIdentity(&pa.Identity, pa.SubFactor).c_str());
+					}
+				}
+				else
+					swprintf_s(fx, 1000, L"OK 0x%X - Operation %i", ar->ApiStatus, ar->Operation);
+			}
 			AddMessage(fx);
 			
 			__noop;
