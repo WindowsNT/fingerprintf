@@ -214,6 +214,12 @@ std::wstring displayIdentity(
 	return a;
 	}
 
+void AskAction()
+{
+	if (fp.GetUnits()[Unit].BiometricFactor == WINBIO_TYPE_FINGERPRINT)
+		AddMessage(L"Please swipe your finger");
+}
+
 
 LRESULT CALLBACK Main_DP(HWND hh, UINT mm, WPARAM ww, LPARAM ll)
 	{
@@ -258,6 +264,21 @@ LRESULT CALLBACK Main_DP(HWND hh, UINT mm, WPARAM ww, LPARAM ll)
 					swprintf_s(fx, 1000, L"Fail 0x%X - Locate", ar->ApiStatus);
 				}
 				else
+				if (ar->Operation == WINBIO_OPERATION_ENROLL_BEGIN)
+				{
+					swprintf_s(fx, 1000, L"Fail 0x%X - Enroll Begin", ar->ApiStatus);
+				}
+				else
+				if (ar->Operation == WINBIO_OPERATION_ENROLL_CAPTURE)
+				{
+					swprintf_s(fx, 1000, L"Fail 0x%X - Enroll Capture", ar->ApiStatus);
+				}
+				else
+				if (ar->Operation == WINBIO_OPERATION_ENROLL_COMMIT || ar->Operation == WINBIO_OPERATION_ENROLL_DISCARD)
+				{
+					swprintf_s(fx, 1000, L"Fail 0x%X - Enroll Finish", ar->ApiStatus);
+				}
+				else
 					swprintf_s(fx, 1000, L"Fail 0x%X - Operation %i", ar->ApiStatus,ar->Operation);
 			}
 			else
@@ -273,6 +294,21 @@ LRESULT CALLBACK Main_DP(HWND hh, UINT mm, WPARAM ww, LPARAM ll)
 				if (ar->Operation == WINBIO_OPERATION_VERIFY)
 				{
 					swprintf_s(fx, 1000, L"OK - Verify");
+				}
+				else
+				if (ar->Operation == WINBIO_OPERATION_ENROLL_BEGIN)
+				{
+					swprintf_s(fx, 1000, L"OK - Enroll Begin");
+				}
+				else
+				if (ar->Operation == WINBIO_OPERATION_ENROLL_CAPTURE)
+				{
+					swprintf_s(fx, 1000, L"OK - Enroll Capture");
+				}
+				else
+				if (ar->Operation == WINBIO_OPERATION_ENROLL_COMMIT || ar->Operation == WINBIO_OPERATION_ENROLL_DISCARD)
+				{
+					swprintf_s(fx, 1000, L"OK - Enroll Finish");
 				}
 				else
 				if (ar->Operation == WINBIO_OPERATION_MONITOR_PRESENCE)
@@ -388,7 +424,7 @@ LRESULT CALLBACK Main_DP(HWND hh, UINT mm, WPARAM ww, LPARAM ll)
 					AddMessage( L"Locating completed");
 				}
 		
-			if (LW >= 230 && LW <= 239)
+			if (LW >= 230 && LW <= 241)
 				{
 				UCHAR s = 0;
 				if (LW == 230)
@@ -409,8 +445,10 @@ LRESULT CALLBACK Main_DP(HWND hh, UINT mm, WPARAM ww, LPARAM ll)
 					s = WINBIO_ANSI_381_POS_LH_MIDDLE_FINGER;
 				if (LW == 238)
 					s = WINBIO_ANSI_381_POS_LH_RING_FINGER;
-				if (LW == 239)
-					s = WINBIO_ANSI_381_POS_LH_LITTLE_FINGER;
+				if (LW == 240)
+					s = WINBIO_ANSI_385_FACE_FRONTAL_FULL;
+				if (LW == 241)
+					s = 15;
 
 				auto cb = [](SIZE_T, HRESULT hrt, WINBIO_REJECT_DETAIL) -> HRESULT
 					{
@@ -423,7 +461,7 @@ LRESULT CALLBACK Main_DP(HWND hh, UINT mm, WPARAM ww, LPARAM ll)
 					return hrt;
 					};
 
-				AddMessage( L"Please swipe your finger");
+				AskAction();
 				auto enr = fp.Enroll(false,s,Unit,cb);
 				if (fp.IsAsync())
 					return 0;
@@ -457,7 +495,7 @@ LRESULT CALLBACK Main_DP(HWND hh, UINT mm, WPARAM ww, LPARAM ll)
 					return hrt;
 					};
 
-				AddMessage( L"Please swipe your finger");
+				AskAction();
 				auto ide = fp.Identify(Unit);
 				if (fp.IsAsync())
 					return 0;
@@ -488,7 +526,7 @@ LRESULT CALLBACK Main_DP(HWND hh, UINT mm, WPARAM ww, LPARAM ll)
 
 			if (LW == 208)
 				{
-				AddMessage(L"Please swipe your finger");
+				AskAction();
 				auto e = fp.Verify(LastID, LastSub);
 				if (fp.IsAsync())
 					return 0;
